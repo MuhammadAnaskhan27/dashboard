@@ -1,6 +1,5 @@
 "use client";
 import React, { useState } from "react";
-import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -12,276 +11,295 @@ import {
   SelectGroup,
   SelectLabel,
 } from "@/components/ui/select";
-
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
-
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import axios from "axios";
 
 const ProjectTab = () => {
-  const [date, setDate] = useState(null); // Fixed initialization of date state
+  const [formData, setFormData] = useState({
+    ProjectName: "",
+    members: ["677c13696118888a6e34844c"],
+    clients: "",
+    budget: "",
+    currency: "",
+    priority: "677b0234c2030fe722543ba5",
+    status: "677b0197c2030fe722543b96",
+    startDate: "",
+    endDate: "",
+    dueDate: "",
+    description: "",
+  });
+
+  const [dropdowns, setDropdowns] = useState({
+    priorities: [],
+    statuses: [],
+    members: [],
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
+  };
+
+  const handleSelectChange = (field, value) => {
+    setFormData((prevData) => ({ ...prevData, [field]: value }));
+  };
+
+  const fetchDropdowns = async () => {
+    try {
+      const [priorityResponse, statusResponse, membersResponse] =
+        await Promise.all([
+          axios.post("http://localhost:8000/Dropdown/getPriorities"),
+          axios.post("http://localhost:8000/Dropdown/getStatuses"),
+          axios.post("http://localhost:8000/User/getMembersList"),
+        ]);
+
+      setDropdowns({
+        priorities: priorityResponse.data || "677b0234c2030fe722543ba5",
+        statuses: statusResponse.data || "677b0197c2030fe722543b96",
+        members: membersResponse.data || "677c13696118888a6e34844c",
+      });
+    } catch (error) {
+      console.error("Error fetching dropdowns:", error);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const headers = {
+      "Content-Type": "application/json",
+    };
+
+    try {
+      // Send the POST request with headers
+      await axios.post(
+        "http://localhost:8000/project/createProject",
+        formData,
+        { headers }
+      );
+      alert("Project added successfully!");
+
+      // Reset the form data after successful submission
+      setFormData({
+        ProjectName: "",
+        members: [],
+        clients: "",
+        budget: "",
+        currency: "",
+        priority: "",
+        status: "",
+        description: "",
+        startDate: "",
+        endDate: "",
+        dueDate: "",
+      });
+    } catch (error) {
+      console.error("Error adding project:", error);
+      alert("Failed to add project.");
+    }
+  };
+
+  React.useEffect(() => {
+    fetchDropdowns();
+  }, []);
 
   return (
-    <div className="m-4">
-      <h1>Add Project</h1>
+    <form className="m-4" onSubmit={handleSubmit}>
+      <h1 className="mb-6 text-lg font-bold">Add Project</h1>
 
-      {/* First Input */}
-      <div className="grid w-full max-w-sm items-center gap-1.5 mt-6">
-        <Label className="text-[#5270D1]" htmlFor="email">
+      {/* Project Name */}
+      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
+        <Label className="text-[#5270D1]" htmlFor="ProjectName">
           Project Name
         </Label>
         <Input
+          name="ProjectName"
+          id="ProjectName"
           className="w-[300px] h-[30px] rounded-none"
-          type="email"
-          id="email"
+          value={formData.ProjectName}
+          onChange={handleChange}
         />
       </div>
 
-      {/* Second Input */}
+      {/* Members */}
       <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
         <Label className="text-[#5270D1]" htmlFor="members">
           Members
         </Label>
-        <Select>
+        <Select
+          onValueChange={(value) =>
+            setFormData((prevData) => ({
+              ...prevData,
+              members: [...prevData.members, value],
+            }))
+          }
+        >
           <SelectTrigger className="w-[300px] h-[30px] rounded-none">
-            <SelectValue placeholder="Nothing Selected" />
+            <SelectValue placeholder="Select Members" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              <SelectLabel>Nothing Selected</SelectLabel>
-              <SelectItem value="apple">Apple</SelectItem>
-              <SelectItem value="banana">Banana</SelectItem>
-              <SelectItem value="blueberry">Blueberry</SelectItem>
-              <SelectItem value="grapes">Grapes</SelectItem>
-              <SelectItem value="pineapple">Pineapple</SelectItem>
+              <SelectLabel>Available Members</SelectLabel>
+              {dropdowns.members.map((member) => (
+                <SelectItem key={member._id} value={member._id}>
+                  {member.name}
+                </SelectItem>
+              ))}
             </SelectGroup>
           </SelectContent>
         </Select>
       </div>
 
-      {/* Third Input */}
-      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
-        <Label className="text-[#5270D1]" htmlFor="teams">
-          Teams
-        </Label>
-        <Select>
-          <SelectTrigger className="w-[300px] h-[30px] rounded-none">
-            <SelectValue placeholder="Nothing Selected" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>Nothing Selected</SelectLabel>
-              <SelectItem value="apple">Apple</SelectItem>
-              <SelectItem value="banana">Banana</SelectItem>
-              <SelectItem value="blueberry">Blueberry</SelectItem>
-              <SelectItem value="grapes">Grapes</SelectItem>
-              <SelectItem value="pineapple">Pineapple</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Fourth Input */}
+      {/* Clients */}
       <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
         <Label className="text-[#5270D1]" htmlFor="clients">
           Clients
         </Label>
-        <Select>
-          <SelectTrigger className="w-[300px] h-[30px] rounded-none">
-            <SelectValue placeholder="Nothing Selected" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>Nothing Selected</SelectLabel>
-              <SelectItem value="apple">Apple</SelectItem>
-              <SelectItem value="banana">Banana</SelectItem>
-              <SelectItem value="blueberry">Blueberry</SelectItem>
-              <SelectItem value="grapes">Grapes</SelectItem>
-              <SelectItem value="pineapple">Pineapple</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Fifth Input */}
-      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
-        <Label className="text-[#5270D1]" htmlFor="budget">
-          Project Budget
-        </Label>
         <Input
+          name="clients"
+          id="clients"
           className="w-[300px] h-[30px] rounded-none"
-          type="text"
-          id="budget"
+          value={formData.clients}
+          onChange={handleChange}
         />
       </div>
 
-      {/* Sixth Input */}
+      {/* Budget */}
+      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
+        <Label className="text-[#5270D1]" htmlFor="budget">
+          Budget
+        </Label>
+        <Input
+          name="budget"
+          id="budget"
+          type="number"
+          className="w-[300px] h-[30px] rounded-none"
+          value={formData.budget}
+          onChange={handleChange}
+        />
+      </div>
+
+      {/* Currency */}
       <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
         <Label className="text-[#5270D1]" htmlFor="currency">
           Currency
         </Label>
-        <Select>
+        <Select
+          onValueChange={(value) => handleSelectChange("currency", value)}
+        >
           <SelectTrigger className="w-[300px] h-[30px] rounded-none">
-            <SelectValue placeholder="USD ($)" />
+            <SelectValue placeholder="Select Currency" />
           </SelectTrigger>
           <SelectContent>
-            <SelectGroup>
-              <SelectLabel>Nothing Selected</SelectLabel>
-              <SelectItem value="apple">Apple</SelectItem>
-              <SelectItem value="banana">Banana</SelectItem>
-              <SelectItem value="blueberry">Blueberry</SelectItem>
-              <SelectItem value="grapes">Grapes</SelectItem>
-              <SelectItem value="pineapple">Pineapple</SelectItem>
-            </SelectGroup>
+            <SelectItem value="USD">USD</SelectItem>
+            <SelectItem value="EUR">EUR</SelectItem>
+            <SelectItem value="INR">INR</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      {/* Seventh Input */}
-      <div className="flex w-full max-w-sm items-center gap-3 mt-3">
-        <div>
-          <Label className="text-[#5270D1]" htmlFor="priority">
-            Priority
-          </Label>
-          <Select>
-            <SelectTrigger className="w-[145px] h-[30px] rounded-none">
-              <SelectValue placeholder="Medium" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Nothing Selected</SelectLabel>
-                <SelectItem value="apple">Apple</SelectItem>
-                <SelectItem value="banana">Banana</SelectItem>
-                <SelectItem value="blueberry">Blueberry</SelectItem>
-                <SelectItem value="grapes">Grapes</SelectItem>
-                <SelectItem value="pineapple">Pineapple</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label className="text-[#5270D1]" htmlFor="status">
-            Status
-          </Label>
-          <Select>
-            <SelectTrigger className="w-[145px] h-[30px] rounded-none">
-              <SelectValue placeholder="To Do" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Nothing Selected</SelectLabel>
-                <SelectItem value="apple">Apple</SelectItem>
-                <SelectItem value="banana">Banana</SelectItem>
-                <SelectItem value="blueberry">Blueberry</SelectItem>
-                <SelectItem value="grapes">Grapes</SelectItem>
-                <SelectItem value="pineapple">Pineapple</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Priority */}
+      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
+        <Label className="text-[#5270D1]" htmlFor="priority">
+          Priority
+        </Label>
+        <Select
+          onValueChange={(value) => handleSelectChange("priority", value)}
+        >
+          <SelectTrigger className="w-[300px] h-[30px] rounded-none">
+            <SelectValue placeholder="Select Priority" />
+          </SelectTrigger>
+          <SelectContent>
+            {dropdowns.priorities.map((priority) => (
+              <SelectItem key={priority._id} value={priority._id}>
+                {priority.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Eighth Input */}
+      {/* Status */}
+      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
+        <Label className="text-[#5270D1]" htmlFor="status">
+          Status
+        </Label>
+        <Select onValueChange={(value) => handleSelectChange("status", value)}>
+          <SelectTrigger className="w-[300px] h-[30px] rounded-none">
+            <SelectValue placeholder="Select Status" />
+          </SelectTrigger>
+          <SelectContent>
+            {dropdowns.statuses.map((status) => (
+              <SelectItem key={status._id} value={status._id}>
+                {status.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      <div className="grid w-full max-w-sm items-center mt-3 gap-0">
-        <Label className="text-[#5270D1]" htmlFor="start-date">
+      {/* Start Date */}
+      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
+        <Label className="text-[#5270D1]" htmlFor="startDate">
           Start Date
         </Label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant={"outline"}
-              className={cn(
-                "w-[300px] h-[30px] rounded-none justify-start text-left font-normal",
-                !date && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2" />
-              {date ? format(date, "MM/dd/yyyy") : <span>mm/dd/yyyy</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={setDate}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
+        <Input
+          type="date"
+          name="startDate"
+          id="startDate"
+          className="w-[300px] h-[30px] rounded-none"
+          value={formData.startDate}
+          onChange={handleChange}
+        />
       </div>
 
-      <div className="grid w-full max-w-sm items-center mt-3 gap-0">
-        <Label className="text-[#5270D1]" htmlFor="end-date">
+      {/* End Date */}
+      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
+        <Label className="text-[#5270D1]" htmlFor="endDate">
           End Date
         </Label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant={"outline"}
-              className={cn(
-                "w-[300px] h-[30px] rounded-none justify-start text-left font-normal",
-                !date && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2" />
-              {date ? format(date, "MM/dd/yyyy") : <span>mm/dd/yyyy</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={setDate}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
+        <Input
+          type="date"
+          name="endDate"
+          id="endDate"
+          className="w-[300px] h-[30px] rounded-none"
+          value={formData.endDate}
+          onChange={handleChange}
+        />
       </div>
 
-      {/* Ninth Input */}
-
-      <div className="grid w-full max-w-sm items-center mt-3 gap-0">
-        <Label className="text-[#5270D1]" htmlFor="start-date mb-4 ">
+      {/* Due Date */}
+      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
+        <Label className="text-[#5270D1]" htmlFor="dueDate">
           Due Date
         </Label>
-        <Popover className="mt-20">
-          <PopoverTrigger asChild>
-            <Button
-              variant={"outline"}
-              className={cn(
-                "w-[300px] h-[30px] rounded-none justify-start text-left font-normal",
-                !date && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2" />
-              {date ? format(date, "MM/dd/yyyy") : <span>mm/dd/yyyy</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={setDate}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
+        <Input
+          type="date"
+          name="dueDate"
+          id="dueDate"
+          className="w-[300px] h-[30px] rounded-none"
+          value={formData.dueDate}
+          onChange={handleChange}
+        />
       </div>
-      <Link href="project/projectdashboard">
-        <Button className="bg-[#5470CB] mt-4 mb-10 w-[300px] hover:bg-[#5470CB] h-8 ">
-          Add Project
-        </Button>
-      </Link>
-    </div>
+
+      {/* Description */}
+      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
+        <Label className="text-[#5270D1]" htmlFor="description">
+          Description
+        </Label>
+        <Input
+          name="description"
+          id="description"
+          className="w-[300px] h-[100px] rounded-none"
+          value={formData.description}
+          onChange={handleChange}
+        />
+      </div>
+
+      <Button type="submit" className="mt-6 w-[300px] bg-[#5270D1]">
+        Add Project
+      </Button>
+    </form>
   );
 };
 

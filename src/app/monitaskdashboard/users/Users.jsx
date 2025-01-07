@@ -1,24 +1,10 @@
 "use client";
 import React, { useState } from "react";
-import Link from "next/link";
-import { Checkbox } from "@/components/ui/checkbox";
+import axios from "axios";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectGroup,
-  SelectLabel,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
-
-import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -26,21 +12,22 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import axios from "axios";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 const Users = () => {
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+    first_name: "",
+    last_name: "",
     email: "",
     phoneNumber: "",
     position: "",
     employeeId: "",
-    timeZone: "",
-    projects: "",
-    hireDate: null,
-    additionalInfo: "",
-    allowLogin: false,
+    hireDate: "",
+    additionalInformation: "", // Updated field name
+    isLogin: false,
+    projectCount: 1,
   });
 
   const handleChange = (e) => {
@@ -51,13 +38,6 @@ const Users = () => {
     }));
   };
 
-  const handleSelectChange = (name, value) => {
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("Form data submitted:", formData);
@@ -65,7 +45,12 @@ const Users = () => {
     try {
       const response = await axios.post(
         "http://localhost:8000/User/CreateUser",
-        formData
+        JSON.stringify(formData),
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
       console.log("API response:", response.data);
       alert("User added successfully!");
@@ -83,39 +68,30 @@ const Users = () => {
         <div className="flex border-2 p-4 justify-around">
           <div>
             <div className="grid w-full max-w-sm items-center gap-1.5 mt-6">
-              <Label className="text-[#5270D1]" htmlFor="firstName">
-                First Name
-              </Label>
+              <Label htmlFor="first_name">First Name</Label>
               <Input
-                className="w-[300px] h-[30px] rounded-none"
-                id="firstName"
-                name="firstName"
-                value={formData.firstName}
+                id="first_name"
+                name="first_name"
+                value={formData.first_name}
                 onChange={handleChange}
                 placeholder="First Name"
               />
             </div>
 
             <div className="grid w-full max-w-sm items-center gap-1.5 mt-6">
-              <Label className="text-[#5270D1]" htmlFor="lastName">
-                Last Name
-              </Label>
+              <Label htmlFor="last_name">Last Name</Label>
               <Input
-                className="w-[300px] h-[30px] rounded-none"
-                id="lastName"
-                name="lastName"
-                value={formData.lastName}
+                id="last_name"
+                name="last_name"
+                value={formData.last_name}
                 onChange={handleChange}
                 placeholder="Last Name"
               />
             </div>
 
             <div className="grid w-full max-w-sm items-center gap-1.5 mt-6">
-              <Label className="text-[#5270D1]" htmlFor="email">
-                Email
-              </Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                className="w-[300px] h-[30px] rounded-none"
                 id="email"
                 name="email"
                 value={formData.email}
@@ -125,11 +101,8 @@ const Users = () => {
             </div>
 
             <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
-              <Label className="text-[#5270D1]" htmlFor="phoneNumber">
-                Phone Number
-              </Label>
+              <Label htmlFor="phoneNumber">Phone Number</Label>
               <Input
-                className="w-[300px] h-[30px] rounded-none"
                 id="phoneNumber"
                 name="phoneNumber"
                 value={formData.phoneNumber}
@@ -139,11 +112,8 @@ const Users = () => {
             </div>
 
             <div className="grid w-full max-w-sm items-center gap-1.5 mt-6">
-              <Label className="text-[#5270D1]" htmlFor="position">
-                Position
-              </Label>
+              <Label htmlFor="position">Position</Label>
               <Input
-                className="w-[300px] h-[30px] rounded-none"
                 id="position"
                 name="position"
                 value={formData.position}
@@ -155,11 +125,8 @@ const Users = () => {
 
           <div>
             <div className="grid w-full max-w-sm items-center gap-1.5 mt-6">
-              <Label className="text-[#5270D1]" htmlFor="employeeId">
-                Employee ID
-              </Label>
+              <Label htmlFor="employeeId">Employee ID</Label>
               <Input
-                className="w-[300px] h-[30px] rounded-none"
                 id="employeeId"
                 name="employeeId"
                 value={formData.employeeId}
@@ -169,9 +136,7 @@ const Users = () => {
             </div>
 
             <div className="grid w-full max-w-sm items-center gap-1.5 mt-6">
-              <Label className="text-[#5270D1]" htmlFor="hireDate">
-                Hire Date
-              </Label>
+              <Label htmlFor="hireDate">Hire Date</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -183,7 +148,7 @@ const Users = () => {
                   >
                     <CalendarIcon className="mr-2" />
                     {formData.hireDate
-                      ? format(formData.hireDate, "MM/dd/yyyy")
+                      ? format(new Date(formData.hireDate), "MM/dd/yyyy")
                       : "Select Date"}
                   </Button>
                 </PopoverTrigger>
@@ -200,13 +165,13 @@ const Users = () => {
             </div>
 
             <div className="grid w-full max-w-sm items-center gap-1.5 mt-6">
-              <Label className="text-[#5270D1]" htmlFor="additionalInfo">
+              <Label htmlFor="additionalInformation">
                 Additional Information
               </Label>
               <Textarea
-                id="additionalInfo"
-                name="additionalInfo"
-                value={formData.additionalInfo}
+                id="additionalInformation"
+                name="additionalInformation"
+                value={formData.additionalInformation}
                 onChange={handleChange}
                 placeholder="Type your message here."
               />
@@ -214,15 +179,12 @@ const Users = () => {
 
             <div className="flex mt-4 items-center space-x-2">
               <Checkbox
-                id="allowLogin"
-                name="allowLogin"
-                checked={formData.allowLogin}
+                id="isLogin"
+                name="isLogin"
+                checked={formData.isLogin}
                 onChange={handleChange}
               />
-              <label
-                htmlFor="allowLogin"
-                className="text-sm text-[#5471CC] font-medium leading-none"
-              >
+              <label htmlFor="isLogin" className="text-sm">
                 Allow login to the monitask website
               </label>
             </div>
@@ -230,10 +192,7 @@ const Users = () => {
         </div>
       </div>
 
-      <Button
-        className="bg-[#5470CB] relative left-80 mt-4 mb-10 w-[400px] hover:bg-[#5470CB] h-8"
-        type="submit"
-      >
+      <Button className="mt-4 mb-10 w-[400px] h-8" type="submit">
         Submit
       </Button>
     </form>
