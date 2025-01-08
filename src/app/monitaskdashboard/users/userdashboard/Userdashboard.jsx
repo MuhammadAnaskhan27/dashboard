@@ -64,7 +64,7 @@ const UserDashboardTable = () => {
         }
       );
 
-      if (response.ok) {
+      if (response.status===200) {
         alert("User deleted successfully!");
         setUsers((prevUsers) => prevUsers.filter((user) => user._id !== id)); // Use _id if it's the unique identifier
       } else {
@@ -220,49 +220,41 @@ const UserDashboardTable = () => {
           <div className="bg-white p-4 rounded-lg shadow-lg w-96">
             <h2 className="text-lg font-semibold mb-4">Edit User</h2>
             <div className="mb-4">
-              <label htmlFor="first_name" className="block text-sm">
-                First Name
-              </label>
+              <label htmlFor="first_name" className="block text-sm">First Name</label>
               <Input
                 id="first_name"
                 name="first_name"
-                value={editUser.first_name || ""}
+                value={editUser.first_name || ''}
                 onChange={handleChange}
                 className="mt-1 w-full"
               />
             </div>
             <div className="mb-4">
-              <label htmlFor="position" className="block text-sm">
-                Role
-              </label>
+              <label htmlFor="position" className="block text-sm">Role</label>
               <Input
                 id="position"
                 name="position"
-                value={editUser.position || ""}
+                value={editUser.position || ''}
                 onChange={handleChange}
                 className="mt-1 w-full"
               />
             </div>
             <div className="mb-4">
-              <label htmlFor="projects" className="block text-sm">
-                Projects
-              </label>
+              <label htmlFor="projects" className="block text-sm">Projects</label>
               <Input
                 id="projects"
                 name="projects"
-                value={editUser.projects || ""}
+                value={editUser.projects || ''}
                 onChange={handleChange}
                 className="mt-1 w-full"
               />
             </div>
             <div className="mb-4">
-              <label htmlFor="additionalInformation" className="block text-sm">
-                Additional Information
-              </label>
+              <label htmlFor="additionalInformation" className="block text-sm">Additional Information</label>
               <Input
                 id="additionalInformation"
                 name="additionalInformation"
-                value={editUser.additionalInformation || ""}
+                value={editUser.additionalInformation || ''}
                 onChange={handleChange}
                 className="mt-1 w-full"
               />

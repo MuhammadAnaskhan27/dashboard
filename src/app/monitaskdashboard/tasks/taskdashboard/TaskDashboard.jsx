@@ -1,69 +1,90 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trash2, ChevronLeft, ChevronRight, Save } from "lucide-react";
-import { Circle, Clock, ArrowDown, ArrowUp, ArrowRightCircle } from "lucide-react"; // Priority icons
-import { Select,SelectTrigger,SelectContent,SelectItem } from "@/components/ui/select";
-// Mock Data
-const initialTaskData = [
-  {
-    id: 1,
-    source: "Monitask",
-    taskName: "[DEMO] Default",
-    projectName: "fyp project",
-    lastWorkedOn: "12/08/2024",
-    status: "To Do",
-    priority: "Medium",
-  },
-  {
-    id: 2,
-    source: "Monitask",
-    taskName: "[DEMO] Update SystemConfiguration table",
-    projectName: "PayPal",
-    lastWorkedOn: "Never",
-    status: "To Do",
-    priority: "Medium",
-  },
-  {
-    id: 3,
-    source: "Monitask",
-    taskName: "[DEMO] Install request processor",
-    projectName: "PayPal",
-    lastWorkedOn: "Never",
-    status: "In Progress",
-    priority: "High",
-  },
-  // More mock data...
-];
+import Link from "next/link";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Circle,
+  Clock,
+  ArrowDown,
+  ArrowUp,
+  ArrowRightCircle,
+} from "lucide-react";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import axios from "axios";
 
 const ITEMS_PER_PAGE = 5;
 
 const TaskDashboard = () => {
-  const [taskData, setTaskData] = useState(initialTaskData);
+  const [taskData, setTaskData] = useState([]);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [editingTask, setEditingTask] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch tasks from API
+  useEffect(() => {
+    const fetchTasks = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await axios.get(
+          "http://localhost:8000/Task/getAllTasks"
+        );
+        setTaskData(response.data); // Assuming the API returns an array of tasks
+      } catch (err) {
+        console.error("Error fetching tasks:", err);
+        setError("Failed to load tasks. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTasks();
+  }, []);
 
   // Filtered data
   const filteredTasks = taskData.filter(
     (task) =>
-      task.taskName.toLowerCase().includes(search.toLowerCase()) &&
+      (task.taskName?.toLowerCase() || "").includes(search.toLowerCase()) && // Fix here
       (filterStatus !== "all" ? task.status === filterStatus : true)
   );
 
   // Paginated data
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedData = filteredTasks.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const paginatedData = filteredTasks.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE
+  );
 
   const totalPages = Math.ceil(filteredTasks.length / ITEMS_PER_PAGE);
 
   // Delete Task
-  const handleDelete = (id) => {
-    const updatedTasks = taskData.filter((task) => task.id !== id);
-    setTaskData(updatedTasks);
+  const handleDelete = async (id) => {
+    try {
+      // Make a DELETE request to the API
+      await axios.delete(`http://localhost:8000/Task/deleteTask/${id}`);
+      // Update the local state by filtering out the deleted task
+      const updatedTasks = taskData.filter((task) => task._id !== id);
+      setTaskData(updatedTasks);
+    } catch (err) {
+      console.error("Error deleting task:", err);
+      setError("Failed to delete task. Please try again.");
+    }
   };
 
   // Render Status with Icons
@@ -81,7 +102,7 @@ const TaskDashboard = () => {
         </div>
       );
     }
-    return status; // For other statuses
+    return status;
   };
 
   // Render Priority with Icons
@@ -122,6 +143,14 @@ const TaskDashboard = () => {
     }
   };
 
+  if (loading) {
+    return <div>Loading tasks...</div>;
+  }
+
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
+  }
+
   return (
     <div className="p-4">
       {/* Search and Filter */}
@@ -132,6 +161,9 @@ const TaskDashboard = () => {
           onChange={(e) => setSearch(e.target.value)}
           className="w-1/3"
         />
+        <Link href="/monitaskdashboard/tasks">
+          <Button variant="default">+ Add New Task</Button>
+        </Link>
         <Select
           onValueChange={(value) => setFilterStatus(value)}
           value={filterStatus}
@@ -158,7 +190,7 @@ const TaskDashboard = () => {
               <TableHead className="text-white">Source</TableHead>
               <TableHead className="text-white">Task Name</TableHead>
               <TableHead className="text-white">Project Name</TableHead>
-              <TableHead className="text-white">Last Worked On</TableHead>
+              <TableHead className="text-white"> Task Due Date</TableHead>
               <TableHead className="text-white">Status</TableHead>
               <TableHead className="text-white">Priority</TableHead>
               <TableHead className="text-white">Actions</TableHead>
@@ -166,11 +198,14 @@ const TaskDashboard = () => {
           </TableHeader>
           <TableBody>
             {paginatedData.map((task) => (
-              <TableRow key={task.id}>
+              <TableRow key={task._id}>
                 <TableCell>{task.source}</TableCell>
-                <TableCell>{task.taskName}</TableCell>
-                <TableCell>{task.projectName}</TableCell>
-                <TableCell>{task.lastWorkedOn}</TableCell>
+                <TableCell>{task.description}</TableCell>
+                {/* Check if task.project is not null or undefined */}
+                <TableCell>
+                  {task.project ? task.project.ProjectName : "No Project Name"}
+                </TableCell>
+                <TableCell>{task.dueDate}</TableCell>
                 <TableCell>{renderStatusWithIcon(task.status)}</TableCell>
                 <TableCell>{renderPriorityWithIcon(task.priority)}</TableCell>
                 <TableCell>
@@ -178,7 +213,7 @@ const TaskDashboard = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleDelete(task.id)}
+                      onClick={() => handleDelete(task._id)}
                       title="Delete"
                     >
                       <Trash2 className="h-4 w-4 text-red-500" />

@@ -1,22 +1,8 @@
 "use client";
-import React from "react";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectGroup,
-  SelectLabel,
-} from "@/components/ui/select";
-
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
-
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -24,206 +10,265 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import Link from "next/link";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 const TaskTab = () => {
-  const [date, setDate] = useState(null); // Fixed initialization of date state
+  const [formData, setFormData] = useState({
+    project: "",
+    members: [],
+    priority: "",
+    status: "",
+    dueDate: null,
+    dueTime: "",
+    originalEstimate: "",
+    description: "",
+  });
+
+  const [statuses, setStatuses] = useState([]);
+  const [priorities, setPriorities] = useState([]);
+  const [members, setMembers] = useState([]);
+  const [projects, setProjects] = useState([]);
+
+  // Fetch the statuses, priorities, members, and projects when the component mounts
+  useEffect(() => {
+    // Fetch statuses
+    axios.get("http://localhost:8000/Dropdown/getStatuses")
+      .then((response) => {
+        setStatuses(Array.isArray(response.data) ? response.data : []);
+      })
+      .catch((error) => {
+        console.error("Error fetching statuses:", error);
+      });
+
+    // Fetch priorities
+    axios.get("http://localhost:8000/Dropdown/getPriorities")
+      .then((response) => {
+        setPriorities(Array.isArray(response.data) ? response.data : []);
+      })
+      .catch((error) => {
+        console.error("Error fetching priorities:", error);
+      });
+
+    // Fetch members
+    axios.get("http://localhost:8000/User/getMembersList")
+      .then((response) => {
+        if (response.data.success && Array.isArray(response.data.data)) {
+          setMembers(response.data.data);
+        } else {
+          setMembers([]); // Fallback to an empty array if the data structure is not as expected
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching members:", error);
+      });
+
+    // Fetch projects
+    axios.get("http://localhost:8000/project/getAllProjects")
+      .then((response) => {
+        if (Array.isArray(response.data)) {
+          setProjects(response.data); // Set the project list from the response data
+        } else {
+          setProjects([]); // Fallback to an empty array if the data structure is not as expected
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching projects:", error);
+      });
+  }, []);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
+  const handleSelectChange = (field, value) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      [field]: value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const payload = {
+      ...formData,
+      dueDate: formData.dueDate
+        ? format(new Date(formData.dueDate), "yyyy-MM-dd")
+        : null,
+    };
+
+    try {
+      const response = await axios.post(
+        "http://localhost:8000/Task/CreateTask",
+        JSON.stringify(payload),
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      console.log("API response:", response.data);
+      alert("Task added successfully!");
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      alert("Failed to add task. Please try again.");
+    }
+  };
+
   return (
-    <div className="m-4">
+    <form onSubmit={handleSubmit} className="m-4">
       <h1>Add New Task</h1>
 
-      {/* Second Input */}
       <div className="grid w-full max-w-sm items-center gap-1.5 mt-6">
-        <Label className="text-[#5270D1]" htmlFor="members">
-          Select Project
-        </Label>
-        <Select>
+        <Label htmlFor="project">Select Project</Label>
+        <Select onValueChange={(value) => handleSelectChange("project", value)}>
           <SelectTrigger className="w-[300px] h-[30px] rounded-none">
-            <SelectValue placeholder="Default" />
+            <SelectValue placeholder="Select Project" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              <SelectLabel>Nothing Selected</SelectLabel>
-              <SelectItem value="apple">Apple</SelectItem>
-              <SelectItem value="banana">Banana</SelectItem>
-              <SelectItem value="blueberry">Blueberry</SelectItem>
-              <SelectItem value="grapes">Grapes</SelectItem>
-              <SelectItem value="pineapple">Pineapple</SelectItem>
+              <SelectLabel>Projects</SelectLabel>
+              {projects.map((project) => (
+                <SelectItem key={project._id} value={project._id}>
+                  {project.ProjectName} {/* Display project name */}
+                </SelectItem>
+              ))}
             </SelectGroup>
           </SelectContent>
         </Select>
       </div>
 
-      {/* Third Input */}
       <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
-        <Label className="text-[#5270D1]" htmlFor="teams">
-          User Assignees
-        </Label>
-        <Select>
+        <Label htmlFor="members">User Assignees</Label>
+        <Select
+          onValueChange={(value) => handleSelectChange("members", [...formData.members, value])}
+        >
           <SelectTrigger className="w-[300px] h-[30px] rounded-none">
-            <SelectValue placeholder="Anas" />
+            <SelectValue placeholder="Select Members" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              <SelectLabel>Nothing Selected</SelectLabel>
-              <SelectItem value="apple">Apple</SelectItem>
-              <SelectItem value="banana">Banana</SelectItem>
-              <SelectItem value="blueberry">Blueberry</SelectItem>
-              <SelectItem value="grapes">Grapes</SelectItem>
-              <SelectItem value="pineapple">Pineapple</SelectItem>
+              <SelectLabel>Members</SelectLabel>
+              {members.map((member) => (
+                <SelectItem key={member._id} value={member._id}>
+                  {`${member.first_name} ${member.last_name}`}
+                </SelectItem>
+              ))}
             </SelectGroup>
           </SelectContent>
         </Select>
       </div>
 
-      {/* Fifth Input */}
       <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
-        <Label className="text-[#5270D1]" htmlFor="budget">
-          Task Name
-        </Label>
+        <Label htmlFor="description">Task Description</Label>
         <Input
-          className="w-[300px] h-[30px] rounded-none"
-          type="text"
-          id="budget"
+          id="description"
+          name="description"
+          value={formData.description}
+          onChange={handleChange}
+          placeholder="Enter task description"
         />
       </div>
 
-      {/* Seventh Input */}
-      <div className="flex w-full max-w-sm items-center gap-3 mt-3">
-        <div>
-          <Label className="text-[#5270D1]" htmlFor="priority">
-            Priority
-          </Label>
-          <Select>
-            <SelectTrigger className="w-[300px] h-[30px] rounded-none">
-              <SelectValue placeholder="Medium" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Nothing Selected</SelectLabel>
-                <SelectItem value="apple">Apple</SelectItem>
-                <SelectItem value="banana">Banana</SelectItem>
-                <SelectItem value="blueberry">Blueberry</SelectItem>
-                <SelectItem value="grapes">Grapes</SelectItem>
-                <SelectItem value="pineapple">Pineapple</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
+        <Label htmlFor="priority">Priority</Label>
+        <Select onValueChange={(value) => handleSelectChange("priority", value)}>
+          <SelectTrigger className="w-[300px] h-[30px] rounded-none">
+            <SelectValue placeholder="Select Priority" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Priority</SelectLabel>
+              {priorities.map((priority) => (
+                <SelectItem key={priority.id} value={priority.id}>
+                  {priority.name}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="flex w-full max-w-sm items-center gap-3 mt-3">
-        <div>
-          <Label className="text-[#5270D1]" htmlFor="status">
-            Status
-          </Label>
-          <Select>
-            <SelectTrigger className="w-[300px] h-[30px] rounded-none">
-              <SelectValue placeholder="To Do" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Nothing Selected</SelectLabel>
-                <SelectItem value="apple">Apple</SelectItem>
-                <SelectItem value="banana">Banana</SelectItem>
-                <SelectItem value="blueberry">Blueberry</SelectItem>
-                <SelectItem value="grapes">Grapes</SelectItem>
-                <SelectItem value="pineapple">Pineapple</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
+        <Label htmlFor="status">Status</Label>
+        <Select onValueChange={(value) => handleSelectChange("status", value)}>
+          <SelectTrigger className="w-[300px] h-[30px] rounded-none">
+            <SelectValue placeholder="Select Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Status</SelectLabel>
+              {statuses.map((status) => (
+                <SelectItem key={status.id} value={status.id}>
+                  {status.name}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
       </div>
-
-      {/* Ninth Input */}
 
       <div className="grid w-full max-w-sm items-center mt-3 gap-0">
-        <Label className="text-[#5270D1]" htmlFor="start-date mb-4 ">
-          Due Date
-        </Label>
-        <Popover className="mt-20">
+        <Label htmlFor="dueDate">Due Date</Label>
+        <Popover>
           <PopoverTrigger asChild>
             <Button
-              variant={"outline"}
+              variant="outline"
               className={cn(
                 "w-[300px] h-[30px] rounded-none justify-start text-left font-normal",
-                !date && "text-muted-foreground"
+                !formData.dueDate && "text-muted-foreground"
               )}
             >
               <CalendarIcon className="mr-2" />
-              {date ? format(date, "MM/dd/yyyy") : <span>mm/dd/yyyy</span>}
+              {formData.dueDate
+                ? format(new Date(formData.dueDate), "MM/dd/yyyy")
+                : "Select Date"}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0">
             <Calendar
               mode="single"
-              selected={date}
-              onSelect={setDate}
-              initialFocus
+              selected={formData.dueDate}
+              onSelect={(date) => setFormData({ ...formData, dueDate: date })}
             />
           </PopoverContent>
         </Popover>
       </div>
 
-      <div className="grid w-full max-w-sm items-center mt-3 gap-0">
-        <Label className="text-[#5270D1]" htmlFor="start-date mb-4 ">
-          Due Time
-        </Label>
-        <Popover className="mt-20">
-          <PopoverTrigger asChild>
-            <Button
-              variant={"outline"}
-              className={cn(
-                "w-[300px] h-[30px] rounded-none justify-start text-left font-normal",
-                !date && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2" />
-              {date ? format(date, "MM/dd/yyyy") : <span>mm/dd/yyyy</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={setDate}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
+      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
+        <Label htmlFor="dueTime">Due Time</Label>
+        <Input
+          id="dueTime"
+          name="dueTime"
+          value={formData.dueTime}
+          onChange={handleChange}
+          placeholder="Enter time (e.g., 15:30)"
+        />
       </div>
 
-      {/* Seventh Input */}
-      <div className=" w-full max-w-sm items-center mt-3">
-        <Label className="text-[#5270D1]" htmlFor="priority">
-          Original Estimate
-        </Label>
-
-        <div className="flex gap-2 ">
-          <div>
-            <Input
-              className="h-[30px]"
-              type="email"
-              id="email"
-              placeholder="h"
-            />
-          </div>
-          <div>
-            <Input
-              className="h-[30px]"
-              type="email"
-              id="email"
-              placeholder="m"
-            />
-          </div>
-        </div>
+      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
+        <Label htmlFor="originalEstimate">Original Estimate (hours)</Label>
+        <Input
+          id="originalEstimate"
+          name="originalEstimate"
+          type="number"
+          value={formData.originalEstimate}
+          onChange={handleChange}
+          placeholder="Enter estimate"
+        />
       </div>
-      <Link href="/monitaskdashboard/tasks/taskdashboard">
-        <Button className="bg-[#5470CB] mt-4 mb-10 w-[300px] hover:bg-[#5470CB] h-8 ">
-          Add Task
-        </Button>
-      </Link>
-    </div>
+
+      <Button className="bg-[#5470CB] mt-4 mb-10 w-[300px] hover:bg-[#5470CB] h-8" type="submit">
+        Add Task
+      </Button>
+    </form>
   );
 };
 

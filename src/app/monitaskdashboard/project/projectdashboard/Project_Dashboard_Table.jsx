@@ -1,7 +1,8 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import Link from "next/link";
 import {
   Table,
   TableBody,
@@ -17,136 +18,50 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Pencil, Trash2, ChevronLeft, ChevronRight, Save } from "lucide-react";
-import { Circle, Clock, ArrowDown, ArrowUp, ArrowRightCircle } from "lucide-react"; // Importing more icons for priority
+import {
+  Circle,
+  Clock,
+  ArrowDown,
+  ArrowUp,
+  ArrowRightCircle,
+} from "lucide-react"; // Importing more icons for priority
 
-// Mock Data
-const initialProjectData = [
-  {
-    id: 1,
-    name: "Activision Blizzard",
-    key: "ActBli",
-    status: "To Do",
-    priority: "Lowest",
-    lastWorked: "Never",
-    totalTime: "0h 00m",
-    created: "08/12/2021",
-    members: 6,
-  },
-  {
-    id: 2,
-    name: "Cisco",
-    key: "C",
-    status: "To Do",
-    priority: "Medium",
-    lastWorked: "Never",
-    totalTime: "0h 00m",
-    created: "08/12/2021",
-    members: 6,
-  },
-  {
-    id: 3,
-    name: "fyp project",
-    key: "FypPro",
-    status: "In Progress",
-    priority: "Highest",
-    lastWorked: "Yesterday",
-    totalTime: "2h 30m",
-    created: "12/08/2024",
-    members: 1,
-  },
-  {
-    id: 4,
-    name: "fyp project",
-    key: "FypPro",
-    status: "In Progress",
-    priority: "Highest",
-    lastWorked: "Yesterday",
-    totalTime: "2h 30m",
-    created: "12/08/2024",
-    members: 1,
-  },
-  {
-    id: 5,
-    name: "fyp project",
-    key: "FypPro",
-    status: "In Progress",
-    priority: "Highest",
-    lastWorked: "Yesterday",
-    totalTime: "2h 30m",
-    created: "12/08/2024",
-    members: 1,
-  },
-  {
-    id: 6,
-    name: "fyp project",
-    key: "FypPro",
-    status: "In Progress",
-    priority: "Highest",
-    lastWorked: "Yesterday",
-    totalTime: "2h 30m",
-    created: "12/08/2024",
-    members: 1,
-  },
-  {
-    id: 7,
-    name: "fyp project",
-    key: "FypPro",
-    status: "In Progress",
-    priority: "Highest",
-    lastWorked: "Yesterday",
-    totalTime: "2h 30m",
-    created: "12/08/2024",
-    members: 1,
-  },
-  {
-    id: 8,
-    name: "fyp project",
-    key: "FypPro",
-    status: "In Progress",
-    priority: "Highest",
-    lastWorked: "Yesterday",
-    totalTime: "2h 30m",
-    created: "12/08/2024",
-    members: 1,
-  },
-  {
-    id: 9,
-    name: "fyp project",
-    key: "FypPro",
-    status: "In Progress",
-    priority: "Highest",
-    lastWorked: "Yesterday",
-    totalTime: "2h 30m",
-    created: "12/08/2024",
-    members: 1,
-  },
-  {
-    id: 10,
-    name: "fyp project",
-    key: "FypPro",
-    status: "In Progress",
-    priority: "Highest",
-    lastWorked: "Yesterday",
-    totalTime: "2h 30m",
-    created: "12/08/2024",
-    members: 1,
-  },
- 
-];
-
+// Items per page for pagination
 const ITEMS_PER_PAGE = 5;
 
 const Project_Dashboard_Table = () => {
-  const [projectData, setProjectData] = useState(initialProjectData);
+  const [projectData, setProjectData] = useState([]); // Initialize as an empty array
   const [search, setSearch] = useState("");
   const [filterPriority, setFilterPriority] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [editingProject, setEditingProject] = useState(null);
+  const [loading, setLoading] = useState(true); // Loading state
+
+  // Fetch data from API
+  useEffect(() => {
+    const fetchProjectData = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:8000/project/getAllProjects"
+        );
+        const data = await response.json();
+        console.log("prj", data);
+        setProjectData(data || []); // Ensure it's an array
+      } catch (error) {
+        console.error("Error fetching project data:", error);
+        setProjectData([]); // Ensure fallback to an empty array on error
+      } finally {
+        setLoading(false); // Set loading to false after data is fetched
+      }
+    };
+
+    fetchProjectData();
+  }, []);
 
   // Filtered data
   const filteredProjects = projectData.filter(
     (project) =>
-      project.name.toLowerCase().includes(search.toLowerCase()) &&
+      project?.name?.toLowerCase()?.includes(search.toLowerCase()) &&
       (filterPriority !== "all" ? project.priority === filterPriority : true)
   );
 
@@ -157,12 +72,37 @@ const Project_Dashboard_Table = () => {
     startIndex + ITEMS_PER_PAGE
   );
 
+  console.log("data", paginatedData);
   const totalPages = Math.ceil(filteredProjects.length / ITEMS_PER_PAGE);
 
   // Delete Task
-  const handleDelete = (id) => {
-    const updatedProjects = projectData.filter((project) => project.id !== id);
-    setProjectData(updatedProjects);
+  const handleDelete = async (id) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8000/project/deleteProject/${id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (response.ok) {
+        alert("Project deleted successfully!");
+        // Update the project data by filtering out the deleted project
+        setProjectData((prevProjects) =>
+          prevProjects.filter((project) => project._id !== id)
+        );
+      } else {
+        const errorData = await response.json();
+        console.error(
+          "Failed to delete project:",
+          errorData.message || "Unknown error"
+        );
+        alert("Failed to delete project. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      alert("An error occurred while deleting the project. Please try again.");
+    }
   };
 
   // Edit Task
@@ -246,6 +186,9 @@ const Project_Dashboard_Table = () => {
           onChange={(e) => setSearch(e.target.value)}
           className="w-1/3"
         />
+        <Link href="/monitaskdashboard/project">
+          <Button variant="default">+ Add New Project</Button>
+        </Link>
         <Select
           onValueChange={(value) => setFilterPriority(value)}
           value={filterPriority}
@@ -265,83 +208,74 @@ const Project_Dashboard_Table = () => {
         </Select>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-[#293863] hover:bg-[#293863]">
-              <TableHead className="text-white">Project Name</TableHead>
-              <TableHead className="text-white">Key</TableHead>
-              <TableHead className="text-white">Status</TableHead>
-              <TableHead className="text-white">Priority</TableHead>
-              <TableHead className="text-white">Last Worked</TableHead>
-              <TableHead className="text-white">Total Time</TableHead>
-              <TableHead className="text-white">Created</TableHead>
-              <TableHead className="text-white">Members</TableHead>
-              <TableHead className="text-white">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedData.map((project) => (
-              <TableRow key={project.id}>
-                <TableCell>
-                  {editingProject?.id === project.id ? (
-                    <Input
-                      value={editingProject.name}
-                      onChange={(e) =>
-                        setEditingProject({
-                          ...editingProject,
-                          name: e.target.value,
-                        })
-                      }
-                    />
-                  ) : (
-                    project.name
-                  )}
-                </TableCell>
-                <TableCell>{project.key}</TableCell>
-                <TableCell>{renderStatusWithIcon(project.status)}</TableCell>
-                <TableCell>{renderPriorityWithIcon(project.priority)}</TableCell>
-                <TableCell>{project.lastWorked}</TableCell>
-                <TableCell>{project.totalTime}</TableCell>
-                <TableCell>{project.created}</TableCell>
-                <TableCell>{project.members}</TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    {editingProject?.id === project.id ? (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleSave}
-                        title="Save"
-                      >
-                        <Save className="h-4 w-4 text-green-500" />
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(project)}
-                        title="Edit"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(project.id)}
-                      title="Delete"
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </div>
-                </TableCell>
+      {/* Loading State */}
+      {loading ? (
+        <div className="text-center">Loading projects...</div>
+      ) : (
+        // Table
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-[#293863] hover:bg-[#293863]">
+                <TableHead className="text-white">Project Name</TableHead>
+                <TableHead className="text-white">Status</TableHead>
+                <TableHead className="text-white">Priority</TableHead>
+                <TableHead className="text-white">End Date</TableHead>
+                <TableHead className="text-white">Start Date</TableHead>
+                <TableHead className="text-white">Due Date</TableHead>
+                <TableHead className="text-white">Members</TableHead>
+                <TableHead className="text-white">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {projectData.map((project) => (
+                <TableRow key={project.id}>
+                  <TableCell>{project.ProjectName}</TableCell>
+                  <TableCell>{renderStatusWithIcon(project.status)}</TableCell>
+                  <TableCell>
+                    {renderPriorityWithIcon(project.priority)}
+                  </TableCell>
+                  <TableCell>{project.endDate}</TableCell>
+                  <TableCell>{project.startDate}</TableCell>
+                  <TableCell>{project.dueDate}</TableCell>
+                  <TableCell>{project.members}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      {editingProject?.id === project.id ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={handleSave}
+                          title="Save"
+                        >
+                          <Save className="h-4 w-4 text-green-500" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(project)}
+                          title="Edit"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(project._id)} // Call handleDelete with project id
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       {/* Pagination */}
       <div className="flex justify-end items-center gap-2 mt-4">

@@ -1,11 +1,12 @@
 import React from "react";
 import Header from "../Header";
+import Pricing from "./Pricing";
 
 const page = () => {
   return (
     <div>
       <Header />
-      <h1>This is Pricing Page</h1>
+      <Pricing/>
     </div>
   );
 };

@@ -42,13 +42,13 @@ const items = [
     title: "Projects",
     key: "projects",
     icon: Briefcase,
-    route: "/monitaskdashboard/project",
+    route: "/monitaskdashboard/project/projectdashboard",
   },
   {
     title: "Task",
     key: "task",
     icon: CheckSquare,
-    route: "/monitaskdashboard/tasks",
+    route: "/monitaskdashboard/tasks/taskdashboard",
   },
   // {
   //   title: "Company Settings",
