@@ -10,7 +10,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectGroup,
+  SelectLabel,
+} from "@/components/ui/select";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -35,16 +43,18 @@ const TaskTab = () => {
   // Fetch the statuses, priorities, members, and projects when the component mounts
   useEffect(() => {
     // Fetch statuses
-    axios.get("http://localhost:8000/Dropdown/getStatuses")
+    axios
+      .get("http://localhost:8000/Dropdown/getStatuses")
       .then((response) => {
-        setStatuses(Array.isArray(response.data) ? response.data : []);
+        setStatuses(response.data);
       })
       .catch((error) => {
         console.error("Error fetching statuses:", error);
       });
 
     // Fetch priorities
-    axios.get("http://localhost:8000/Dropdown/getPriorities")
+    axios
+      .get("http://localhost:8000/Dropdown/getPriorities")
       .then((response) => {
         setPriorities(Array.isArray(response.data) ? response.data : []);
       })
@@ -53,7 +63,8 @@ const TaskTab = () => {
       });
 
     // Fetch members
-    axios.get("http://localhost:8000/User/getMembersList")
+    axios
+      .get("http://localhost:8000/User/getMembersList")
       .then((response) => {
         if (response.data.success && Array.isArray(response.data.data)) {
           setMembers(response.data.data);
@@ -66,7 +77,8 @@ const TaskTab = () => {
       });
 
     // Fetch projects
-    axios.get("http://localhost:8000/project/getAllProjects")
+    axios
+      .get("http://localhost:8000/project/getAllProjects")
       .then((response) => {
         if (Array.isArray(response.data)) {
           setProjects(response.data); // Set the project list from the response data
@@ -97,12 +109,21 @@ const TaskTab = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Construct the payload to match the required format
     const payload = {
-      ...formData,
+      project: formData.project, // Project ID
+      members: formData.members, // Array of member IDs
+      priority: formData.priority, // Priority ID
+      status: formData.status, // Status ID
       dueDate: formData.dueDate
-        ? format(new Date(formData.dueDate), "yyyy-MM-dd")
+        ? format(new Date(formData.dueDate), "yyyy-MM-dd") // Format dueDate to "yyyy-MM-dd"
         : null,
+      dueTime: formData.dueTime, // Due time in "HH:mm" format
+      originalEstimate: formData.originalEstimate, // Ensure originalEstimate is a number
+      description: formData.description, // Task description
     };
+
+    console.log("Payload being sent:", payload); // Log the payload to inspect
 
     try {
       const response = await axios.post(
@@ -148,7 +169,9 @@ const TaskTab = () => {
       <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
         <Label htmlFor="members">User Assignees</Label>
         <Select
-          onValueChange={(value) => handleSelectChange("members", [...formData.members, value])}
+          onValueChange={(value) =>
+            handleSelectChange("members", [...formData.members, value])
+          }
         >
           <SelectTrigger className="w-[300px] h-[30px] rounded-none">
             <SelectValue placeholder="Select Members" />
@@ -179,7 +202,9 @@ const TaskTab = () => {
 
       <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
         <Label htmlFor="priority">Priority</Label>
-        <Select onValueChange={(value) => handleSelectChange("priority", value)}>
+        <Select
+          onValueChange={(value) => handleSelectChange("priority", value)}
+        >
           <SelectTrigger className="w-[300px] h-[30px] rounded-none">
             <SelectValue placeholder="Select Priority" />
           </SelectTrigger>
@@ -265,7 +290,10 @@ const TaskTab = () => {
         />
       </div>
 
-      <Button className="bg-[#5470CB] mt-4 mb-10 w-[300px] hover:bg-[#5470CB] h-8" type="submit">
+      <Button
+        className="bg-[#5470CB] mt-4 mb-10 w-[300px] hover:bg-[#5470CB] h-8"
+        type="submit"
+      >
         Add Task
       </Button>
     </form>

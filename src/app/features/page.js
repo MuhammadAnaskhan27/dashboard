@@ -1,11 +1,14 @@
 import React from "react";
 import Header from "../Header";
+import Features from "./Features";
+
 
 const page = () => {
   return (
     <div>
       <Header />
-      <h1>This is Features Page</h1>
+      <Features />
+     
     </div>
   );
 };

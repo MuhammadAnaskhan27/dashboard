@@ -10,9 +10,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Edit, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Edit, Trash2, MoreVertical } from "lucide-react";
 import Link from "next/link";
 import axios from "axios";
+import { Avatar } from "@radix-ui/react-avatar";
+import { AvatarFallback } from "@radix-ui/react-avatar";
+import { AvatarImage } from "@radix-ui/react-avatar";
+
+// Helper function to generate a random color
+const getRandomColor = () => {
+  const letters = "0123456789ABCDEF";
+  let color = "#";
+  for (let i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+};
 
 const ROWS_PER_PAGE = 5;
 
@@ -22,13 +42,16 @@ const UserDashboardTable = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [editUser, setEditUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState({
+    open: false,
+    userId: null,
+  });
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         const response = await fetch("http://localhost:8000/User/getUsersList");
         const data = await response.json();
-        console.log(data); // Inspect the user objects here
         setUsers(data.data); // Ensure data.data contains user objects with `_id` or unique identifier
       } catch (error) {
         console.error("Error fetching users:", error);
@@ -55,58 +78,48 @@ const UserDashboardTable = () => {
     startIndex + ROWS_PER_PAGE
   );
 
-  const handleDelete = async (id) => {
+  const handleDeleteConfirm = async () => {
     try {
       const response = await fetch(
-        `http://localhost:8000/User/deleteUser/${id}`,
-        {
-          method: "DELETE",
-        }
+        `http://localhost:8000/User/deleteUser/${deleteDialog.userId}`,
+        { method: "DELETE" }
       );
 
-      if (response.status===200) {
-        alert("User deleted successfully!");
-        setUsers((prevUsers) => prevUsers.filter((user) => user._id !== id)); // Use _id if it's the unique identifier
-      } else {
-        const errorData = await response.json();
-        console.error(
-          "Failed to delete user:",
-          errorData.message || "Unknown error"
+      if (response.status === 200) {
+        setUsers((prevUsers) =>
+          prevUsers.filter((user) => user._id !== deleteDialog.userId)
         );
+        alert("User deleted successfully!");
+      } else {
         alert("Failed to delete user. Please try again.");
       }
     } catch (error) {
       console.error("Error deleting user:", error);
       alert("An error occurred while deleting the user. Please try again.");
+    } finally {
+      setDeleteDialog({ open: false, userId: null });
     }
   };
 
   const handleEditClick = (user) => {
-    setEditUser({ ...user }); // Set the selected user data for editing
-    setIsEditing(true); // Open the edit modal or form
+    setEditUser({ ...user });
+    setIsEditing(true);
   };
 
   const handleEditSave = async () => {
     try {
-      // Send the updated user data to the server
       const response = await axios.put(
-        `http://localhost:8000/User/updateUser/${editUser._id}`, // Use the ObjectId in the URL
-        editUser, // Send the updated user data in the request body
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
+        `http://localhost:8000/User/updateUser/${editUser._id}`,
+        editUser,
+        { headers: { "Content-Type": "application/json" } }
       );
 
-      console.log("User updated successfully:", response.data);
-
-      // Update the users state with the updated data
       const updatedUsers = users.map((user) =>
         user._id === editUser._id ? editUser : user
       );
       setUsers(updatedUsers);
-      setIsEditing(false); // Close the edit modal/form
+      setIsEditing(false);
+      alert("User updated successfully!");
     } catch (error) {
       console.error("Failed to update user:", error);
       alert("Failed to update user. Please try again.");
@@ -117,12 +130,12 @@ const UserDashboardTable = () => {
     const { name, value } = e.target;
     setEditUser((prevData) => ({
       ...prevData,
-      [name]: value, // Update the editUser state with the changes
+      [name]: value,
     }));
   };
 
   return (
-    <div className="p-4">
+    <div className="p-4 bg-[#F6F8FA] min-h-screen ">
       <div className="flex justify-between items-center mb-4">
         <Input
           placeholder="Search users..."
@@ -136,46 +149,78 @@ const UserDashboardTable = () => {
       </div>
 
       <div className="overflow-x-auto">
-        <Table>
+        <Table className="bg-white shadow-lg rounded-lg">
           <TableHeader>
-            <TableRow className="bg-[#293863] hover:bg-[#293863]">
-              <TableHead className="text-white">Name</TableHead>
-              <TableHead className="text-white">Role</TableHead>
-              <TableHead className="text-white">Teams</TableHead>
-              <TableHead className="text-white">Projects</TableHead>
-              <TableHead className="text-white">Additional Info</TableHead>
-              <TableHead className="text-white">Actions</TableHead>
+            <TableRow className="bg-gray-100 border-b border-gray-300 text-gray-600">
+              <TableHead className="text-left">Logo</TableHead>
+              <TableHead className="text-left text-[#59638F] ">Name</TableHead>
+              <TableHead className="text-left text-[#59638F] ">Email</TableHead>
+              <TableHead className="text-left text-[#59638F] ">Email</TableHead>
+              <TableHead className="text-left text-[#59638F] ">
+                Projects
+              </TableHead>
+              <TableHead className="text-left text-[#59638F] ">
+                Actions
+              </TableHead>
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {currentUsers.length > 0 ? (
               currentUsers.map((user) => (
                 <TableRow
                   key={user.id}
-                  className="hover:bg-gray-700 bg-gray-800 text-gray-100"
+                  className="hover:bg-gray-100  border-b"
                 >
-                  <TableCell>{user.first_name}</TableCell>
-                  <TableCell>{user.position}</TableCell>
-                  <TableCell>{user.teams || "-"}</TableCell>
-                  <TableCell>{user.projectCount || "-"}</TableCell>
-                  <TableCell>{user.additionalInformation || "-"}</TableCell>
+                  <TableCell className="border-r">
+                    <Avatar
+                      className="h-8 w-8 text-white flex items-center justify-center rounded-full"
+                      style={{
+                        backgroundColor: getRandomColor(),
+                      }}
+                    >
+                      <AvatarImage
+                        className="object-cover rounded-full"
+                        src={user.profilePic || "/default-avatar.png"}
+                        alt={user.first_name}
+                        onError={(e) => {
+                          e.target.src = "/default-avatar.png";
+                        }}
+                      />
+                      <AvatarFallback className="text-lg font-bold">
+                        {user.first_name ? user.first_name[0] : "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                  </TableCell>
+
+                  <TableCell>
+                    <div className="font-medium text-gray-800">
+                      {`${user.first_name} ${user.last_name}`}
+                    </div>
+                    <div className="text-gray-500">{user.position}</div>
+                  </TableCell>
+                  <TableCell>{user.email || "-"}</TableCell>
+                  <TableCell>{user.company || "-"}</TableCell>
+                  <TableCell>{user.projectCount || 0}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button
                         variant="ghost"
                         size="icon"
                         title="Edit"
-                        onClick={() => handleEditClick(user)} // Pass user data to handleEditClick
+                        onClick={() => handleEditClick(user)}
                       >
-                        <Edit className="h-4 w-4 text-blue-500" />
+                        <Edit className="h-5 w-5 text-blue-500" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDelete(user._id)} // Use _id or the correct field here
                         title="Delete"
+                        onClick={() =>
+                          setDeleteDialog({ open: true, userId: user._id })
+                        }
                       >
-                        <Trash2 className="h-4 w-4 text-red-500" />
+                        <Trash2 className="h-5 w-5 text-red-500" />
                       </Button>
                     </div>
                   </TableCell>
@@ -183,7 +228,7 @@ const UserDashboardTable = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="text-center">
+                <TableCell colSpan={7} className="text-center">
                   No users found.
                 </TableCell>
               </TableRow>
@@ -214,59 +259,73 @@ const UserDashboardTable = () => {
         </Button>
       </div>
 
-      {/* Modal for Editing */}
+      {/* Delete Confirmation Dialog */}
+      {deleteDialog.open && (
+        <Dialog
+          open={deleteDialog.open}
+          onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Deletion</DialogTitle>
+            </DialogHeader>
+            <p>Are you sure you want to delete this user?</p>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteDialog({ open: false, userId: null })}
+              >
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDeleteConfirm}>
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Edit Modal */}
       {isEditing && (
-        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
-          <div className="bg-white p-4 rounded-lg shadow-lg w-96">
-            <h2 className="text-lg font-semibold mb-4">Edit User</h2>
+        <Dialog open={isEditing} onOpenChange={setIsEditing}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit User</DialogTitle>
+            </DialogHeader>
             <div className="mb-4">
-              <label htmlFor="first_name" className="block text-sm">First Name</label>
+              <label htmlFor="first_name" className="block text-sm">
+                First Name
+              </label>
               <Input
                 id="first_name"
                 name="first_name"
-                value={editUser.first_name || ''}
+                value={editUser.first_name || ""}
                 onChange={handleChange}
                 className="mt-1 w-full"
               />
             </div>
             <div className="mb-4">
-              <label htmlFor="position" className="block text-sm">Role</label>
+              <label htmlFor="last_name" className="block text-sm">
+                Last Name
+              </label>
               <Input
-                id="position"
-                name="position"
-                value={editUser.position || ''}
+                id="last_name"
+                name="last_name"
+                value={editUser.last_name || ""}
                 onChange={handleChange}
                 className="mt-1 w-full"
               />
             </div>
-            <div className="mb-4">
-              <label htmlFor="projects" className="block text-sm">Projects</label>
-              <Input
-                id="projects"
-                name="projects"
-                value={editUser.projects || ''}
-                onChange={handleChange}
-                className="mt-1 w-full"
-              />
-            </div>
-            <div className="mb-4">
-              <label htmlFor="additionalInformation" className="block text-sm">Additional Information</label>
-              <Input
-                id="additionalInformation"
-                name="additionalInformation"
-                value={editUser.additionalInformation || ''}
-                onChange={handleChange}
-                className="mt-1 w-full"
-              />
-            </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <Button onClick={() => setIsEditing(false)} variant="outline">
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditing(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleEditSave}>Save</Button>
-            </div>
-          </div>
-        </div>
+              <Button variant="default" onClick={handleEditSave}>
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

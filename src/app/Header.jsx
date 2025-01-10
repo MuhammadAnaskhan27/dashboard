@@ -16,7 +16,7 @@ const Header = () => {
           </div>
 
           {/* Nav Links */}
-          <div className="hidden md:flex space-x-6">
+          <div className="hidden md:flex space-x-16">
             <Link
               className="text-gray-600 hover:text-gray-900"
               href="/features"
@@ -43,7 +43,7 @@ const Header = () => {
           </div>
 
           {/* Buttons */}
-          <div className="hidden md:flex space-x-4">
+          <div className="hidden md:flex space-x-10">
             <Link href="/loginPage">
               <Button
                 style={{
@@ -57,8 +57,8 @@ const Header = () => {
             </Link>
             <Link href="/signUpPage">
               <Button
-                style={{ border: "2px solid #FF4041", color: "#FF4041" }}
-                className="px-4 hover:bg-white py-2 bg-white   rounded-3xl w-48"
+                style={{ border: "2px  solid #FF4041", color: "#FF4041" }}
+                className="px-4 mr-10 hover:bg-white py-2 bg-white   rounded-3xl w-48"
               >
                 Sign Up For Free
               </Button>

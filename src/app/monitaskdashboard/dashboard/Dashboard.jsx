@@ -100,7 +100,6 @@ const initialUsers = [
     timeLastWeek: "26h 35m",
     activityLastWeek: "89.52%",
   },
-  
 ];
 
 const Dashboard = () => {
@@ -123,7 +122,7 @@ const Dashboard = () => {
   });
 
   return (
-    <div className="p-4">
+    <div className="p-4 bg-[#F6F8FA] min-h-screen">
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-2xl font-bold">Live Dashboard</h1>
@@ -177,14 +176,16 @@ const Dashboard = () => {
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <Table>
-          <TableHeader className="bg-[#293863]">
-            <TableRow>
-              <TableHead>Member</TableHead>
-              <TableHead>Last Worked On</TableHead>
-              <TableHead>Time Worked / Activity Today</TableHead>
-              <TableHead>Yesterday</TableHead>
-              <TableHead>Last 7 Days</TableHead>
+        <Table className="bg-white shadow-lg rounded-lg">
+          <TableHeader>
+            <TableRow className="bg-gray-100 border-b border-gray-300 text-gray-600">
+              <TableHead className="text-[#59638F]">Member</TableHead>
+              <TableHead className="text-[#59638F]">Last Worked On</TableHead>
+              <TableHead className="text-[#59638F]">
+                Time Worked / Activity Today
+              </TableHead>
+              <TableHead className="text-[#59638F]">Yesterday</TableHead>
+              <TableHead className="text-[#59638F]">Last 7 Days</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,27 +13,25 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import axios from "axios";
-
+import { format } from "date-fns";
 const ProjectTab = () => {
   const [formData, setFormData] = useState({
     ProjectName: "",
-    members: ["677c13696118888a6e34844c"],
+    members: [],
     clients: "",
     budget: "",
     currency: "",
-    priority: "677b0234c2030fe722543ba5",
-    status: "677b0197c2030fe722543b96",
+    priority: "",
+    status: "",
     startDate: "",
     endDate: "",
     dueDate: "",
     description: "",
   });
 
-  const [dropdowns, setDropdowns] = useState({
-    priorities: [],
-    statuses: [],
-    members: [],
-  });
+  const [statuses, setStatuses] = useState([]);
+  const [priorities, setPriorities] = useState([]);
+  const [members, setMembers] = useState([]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -41,44 +39,73 @@ const ProjectTab = () => {
   };
 
   const handleSelectChange = (field, value) => {
-    setFormData((prevData) => ({ ...prevData, [field]: value }));
+    setFormData((prevData) => ({
+      ...prevData,
+      [field]: Array.isArray(value) ? value : [value],
+    }));
   };
 
-  const fetchDropdowns = async () => {
-    try {
-      const [priorityResponse, statusResponse, membersResponse] =
-        await Promise.all([
-          axios.post("http://localhost:8000/Dropdown/getPriorities"),
-          axios.post("http://localhost:8000/Dropdown/getStatuses"),
-          axios.post("http://localhost:8000/User/getMembersList"),
-        ]);
-
-      setDropdowns({
-        priorities: priorityResponse.data || "677b0234c2030fe722543ba5",
-        statuses: statusResponse.data || "677b0197c2030fe722543b96",
-        members: membersResponse.data || "677c13696118888a6e34844c",
+  useEffect(() => {
+    axios
+      .get("http://localhost:8000/Dropdown/getStatuses")
+      .then((response) => {
+        setStatuses(Array.isArray(response.data) ? response.data : []);
+      })
+      .catch((error) => {
+        console.error("Error fetching statuses:", error);
       });
-    } catch (error) {
-      console.error("Error fetching dropdowns:", error);
-    }
-  };
+
+    axios
+      .get("http://localhost:8000/Dropdown/getPriorities")
+      .then((response) => {
+        setPriorities(Array.isArray(response.data) ? response.data : []);
+      })
+      .catch((error) => {
+        console.error("Error fetching priorities:", error);
+      });
+
+    // Fetch members
+    axios
+      .get("http://localhost:8000/User/getMembersList")
+      .then((response) => {
+        if (response.data.success && Array.isArray(response.data.data)) {
+          setMembers(response.data.data);
+        } else {
+          setMembers([]); // Fallback to an empty array if the data structure is not as expected
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching members:", error);
+      });
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const headers = {
-      "Content-Type": "application/json",
+
+    const payload = {
+      ...formData,
+      startDate: formData.startDate
+        ? format(new Date(formData.startDate), "yyyy-MM-dd")
+        : null,
+      endDate: formData.endDate
+        ? format(new Date(formData.endDate), "yyyy-MM-dd")
+        : null,
+      dueDate: formData.dueDate
+        ? format(new Date(formData.dueDate), "yyyy-MM-dd")
+        : null,
+      currency: formData.currency.join(),
     };
 
     try {
-      // Send the POST request with headers
-      await axios.post(
+      const response = await axios.post(
         "http://localhost:8000/project/createProject",
-        formData,
-        { headers }
+        JSON.stringify(payload),
+        {
+          headers: { "Content-Type": "application/json" },
+        }
       );
+      console.log("API response:", response.data);
       alert("Project added successfully!");
-
-      // Reset the form data after successful submission
       setFormData({
         ProjectName: "",
         members: [],
@@ -94,13 +121,9 @@ const ProjectTab = () => {
       });
     } catch (error) {
       console.error("Error adding project:", error);
-      alert("Failed to add project.");
+      alert("Failed to add project. Please try again.");
     }
   };
-
-  React.useEffect(() => {
-    fetchDropdowns();
-  }, []);
 
   return (
     <form className="m-4" onSubmit={handleSubmit}>
@@ -108,13 +131,10 @@ const ProjectTab = () => {
 
       {/* Project Name */}
       <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
-        <Label className="text-[#5270D1]" htmlFor="ProjectName">
-          Project Name
-        </Label>
+        <Label htmlFor="ProjectName">Project Name</Label>
         <Input
           name="ProjectName"
           id="ProjectName"
-          className="w-[300px] h-[30px] rounded-none"
           value={formData.ProjectName}
           onChange={handleChange}
         />
@@ -122,26 +142,20 @@ const ProjectTab = () => {
 
       {/* Members */}
       <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
-        <Label className="text-[#5270D1]" htmlFor="members">
-          Members
-        </Label>
+        <Label htmlFor="members">Members</Label>
         <Select
-          onValueChange={(value) =>
-            setFormData((prevData) => ({
-              ...prevData,
-              members: [...prevData.members, value],
-            }))
-          }
+          multiple
+          onValueChange={(value) => handleSelectChange("members", value)}
         >
-          <SelectTrigger className="w-[300px] h-[30px] rounded-none">
+          <SelectTrigger>
             <SelectValue placeholder="Select Members" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              <SelectLabel>Available Members</SelectLabel>
-              {dropdowns.members.map((member) => (
+              <SelectLabel>Members</SelectLabel>
+              {members.map((member) => (
                 <SelectItem key={member._id} value={member._id}>
-                  {member.name}
+                  {`${member.first_name} ${member.last_name}`}
                 </SelectItem>
               ))}
             </SelectGroup>
@@ -149,154 +163,66 @@ const ProjectTab = () => {
         </Select>
       </div>
 
-      {/* Clients */}
-      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
-        <Label className="text-[#5270D1]" htmlFor="clients">
-          Clients
-        </Label>
-        <Input
-          name="clients"
-          id="clients"
-          className="w-[300px] h-[30px] rounded-none"
-          value={formData.clients}
-          onChange={handleChange}
-        />
-      </div>
-
-      {/* Budget */}
-      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
-        <Label className="text-[#5270D1]" htmlFor="budget">
-          Budget
-        </Label>
-        <Input
-          name="budget"
-          id="budget"
-          type="number"
-          className="w-[300px] h-[30px] rounded-none"
-          value={formData.budget}
-          onChange={handleChange}
-        />
-      </div>
-
-      {/* Currency */}
-      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
-        <Label className="text-[#5270D1]" htmlFor="currency">
-          Currency
-        </Label>
-        <Select
-          onValueChange={(value) => handleSelectChange("currency", value)}
+      {/* Other Fields */}
+      {[
+        { label: "Clients", name: "clients" },
+        { label: "Budget", name: "budget", type: "number" },
+        { label: "Start Date", name: "startDate", type: "date" },
+        { label: "End Date", name: "endDate", type: "date" },
+        { label: "Due Date", name: "dueDate", type: "date" },
+        { label: "Description", name: "description" },
+      ].map(({ label, name, type = "text" }) => (
+        <div
+          key={name}
+          className="grid w-full max-w-sm items-center gap-1.5 mt-3"
         >
-          <SelectTrigger className="w-[300px] h-[30px] rounded-none">
-            <SelectValue placeholder="Select Currency" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="USD">USD</SelectItem>
-            <SelectItem value="EUR">EUR</SelectItem>
-            <SelectItem value="INR">INR</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+          <Label htmlFor={name}>{label}</Label>
+          <Input
+            name={name}
+            id={name}
+            type={type}
+            value={formData[name]}
+            onChange={handleChange}
+          />
+        </div>
+      ))}
 
-      {/* Priority */}
-      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
-        <Label className="text-[#5270D1]" htmlFor="priority">
-          Priority
-        </Label>
-        <Select
-          onValueChange={(value) => handleSelectChange("priority", value)}
+      {/* Dropdown Fields */}
+      {[
+        { label: "Currency", name: "currency", options: ["USD", "EUR", "INR"] },
+        { label: "Priority", name: "priority", options: priorities },
+        { label: "Status", name: "status", options: statuses },
+      ].map(({ label, name, options }) => (
+        <div
+          key={name}
+          className="grid w-full max-w-sm items-center gap-1.5 mt-3"
         >
-          <SelectTrigger className="w-[300px] h-[30px] rounded-none">
-            <SelectValue placeholder="Select Priority" />
-          </SelectTrigger>
-          <SelectContent>
-            {dropdowns.priorities.map((priority) => (
-              <SelectItem key={priority._id} value={priority._id}>
-                {priority.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+          <Label htmlFor={name}>{label}</Label>
+          <Select onValueChange={(value) => handleSelectChange(name, value)}>
+            <SelectTrigger>
+              <SelectValue placeholder={`Select ${label}`} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>{label}</SelectLabel>
+                {options.map((option) =>
+                  typeof option === "string" ? (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ) : (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.name}
+                    </SelectItem>
+                  )
+                )}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+      ))}
 
-      {/* Status */}
-      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
-        <Label className="text-[#5270D1]" htmlFor="status">
-          Status
-        </Label>
-        <Select onValueChange={(value) => handleSelectChange("status", value)}>
-          <SelectTrigger className="w-[300px] h-[30px] rounded-none">
-            <SelectValue placeholder="Select Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {dropdowns.statuses.map((status) => (
-              <SelectItem key={status._id} value={status._id}>
-                {status.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Start Date */}
-      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
-        <Label className="text-[#5270D1]" htmlFor="startDate">
-          Start Date
-        </Label>
-        <Input
-          type="date"
-          name="startDate"
-          id="startDate"
-          className="w-[300px] h-[30px] rounded-none"
-          value={formData.startDate}
-          onChange={handleChange}
-        />
-      </div>
-
-      {/* End Date */}
-      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
-        <Label className="text-[#5270D1]" htmlFor="endDate">
-          End Date
-        </Label>
-        <Input
-          type="date"
-          name="endDate"
-          id="endDate"
-          className="w-[300px] h-[30px] rounded-none"
-          value={formData.endDate}
-          onChange={handleChange}
-        />
-      </div>
-
-      {/* Due Date */}
-      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
-        <Label className="text-[#5270D1]" htmlFor="dueDate">
-          Due Date
-        </Label>
-        <Input
-          type="date"
-          name="dueDate"
-          id="dueDate"
-          className="w-[300px] h-[30px] rounded-none"
-          value={formData.dueDate}
-          onChange={handleChange}
-        />
-      </div>
-
-      {/* Description */}
-      <div className="grid w-full max-w-sm items-center gap-1.5 mt-3">
-        <Label className="text-[#5270D1]" htmlFor="description">
-          Description
-        </Label>
-        <Input
-          name="description"
-          id="description"
-          className="w-[300px] h-[100px] rounded-none"
-          value={formData.description}
-          onChange={handleChange}
-        />
-      </div>
-
-      <Button type="submit" className="mt-6 w-[300px] bg-[#5270D1]">
+      <Button type="submit" className="mt-6 bg-blue-500">
         Add Project
       </Button>
     </form>

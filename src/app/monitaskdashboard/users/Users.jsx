@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { CheckCircle } from "lucide-react"; // Import the green check icon
 import {
   Popover,
   PopoverContent,
@@ -15,6 +16,13 @@ import {
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const Users = () => {
   const [formData, setFormData] = useState({
@@ -25,10 +33,14 @@ const Users = () => {
     position: "",
     employeeId: "",
     hireDate: "",
-    additionalInformation: "", // Updated field name
+    additionalInformation: "",
     isLogin: false,
     projectCount: 1,
   });
+
+  const [openDialog, setOpenDialog] = useState(false);
+  const [dialogMessage, setDialogMessage] = useState("");
+  const [dialogSuccess, setDialogSuccess] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -53,10 +65,14 @@ const Users = () => {
         }
       );
       console.log("API response:", response.data);
-      alert("User added successfully!");
+      setDialogMessage("User added successfully!");
+      setDialogSuccess(true);
     } catch (error) {
       console.error("Error submitting form:", error);
-      alert("Failed to add user. Please try again.");
+      setDialogMessage("Failed to add user. Please try again.");
+      setDialogSuccess(false);
+    } finally {
+      setOpenDialog(true);
     }
   };
 
@@ -195,6 +211,23 @@ const Users = () => {
       <Button className="mt-4 mb-10 w-[400px] h-8" type="submit">
         Submit
       </Button>
+
+      {/* Popup Dialog */}
+      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{dialogSuccess ? "Success" : "Error"}</DialogTitle>
+          </DialogHeader>
+          <div className="text-center">
+            <p>{dialogMessage}</p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setOpenDialog(false)} className="w-full">
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </form>
   );
 };

@@ -176,8 +176,17 @@ const Project_Dashboard_Table = () => {
     }
   };
 
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      return "Invalid date"; // Or return a placeholder message
+    }
+    return date.toISOString().split("T")[0]; // Formats the date to YYYY-MM-DD
+  };
+
   return (
-    <div className="p-4">
+    <div className="p-4 bg-[#F6F8FA] min-h-screen ">
       {/* Search and Filter */}
       <div className="flex justify-between items-center mb-4">
         <Input
@@ -189,7 +198,7 @@ const Project_Dashboard_Table = () => {
         <Link href="/monitaskdashboard/project">
           <Button variant="default">+ Add New Project</Button>
         </Link>
-        <Select
+        {/* <Select
           onValueChange={(value) => setFilterPriority(value)}
           value={filterPriority}
         >
@@ -205,7 +214,7 @@ const Project_Dashboard_Table = () => {
             <SelectItem value="Medium">Medium</SelectItem>
             <SelectItem value="Highest">Highest</SelectItem>
           </SelectContent>
-        </Select>
+        </Select> */}
       </div>
 
       {/* Loading State */}
@@ -214,17 +223,17 @@ const Project_Dashboard_Table = () => {
       ) : (
         // Table
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="bg-white shadow-lg rounded-lg">
             <TableHeader>
-              <TableRow className="bg-[#293863] hover:bg-[#293863]">
-                <TableHead className="text-white">Project Name</TableHead>
-                <TableHead className="text-white">Status</TableHead>
-                <TableHead className="text-white">Priority</TableHead>
-                <TableHead className="text-white">End Date</TableHead>
-                <TableHead className="text-white">Start Date</TableHead>
-                <TableHead className="text-white">Due Date</TableHead>
-                <TableHead className="text-white">Members</TableHead>
-                <TableHead className="text-white">Actions</TableHead>
+              <TableRow className="bg-gray-100 border-b border-gray-300 text-gray-600">
+                <TableHead className="text-[#59638F] ">Project Name</TableHead>
+                <TableHead className="text-[#59638F] ">Status</TableHead>
+                <TableHead className="text-[#59638F] ">Priority</TableHead>
+                <TableHead className="text-[#59638F] ">End Date</TableHead>
+                <TableHead className="text-[#59638F] ">Start Date</TableHead>
+                <TableHead className="text-[#59638F] ">Due Date</TableHead>
+                <TableHead className="text-[#59638F] ">Members</TableHead>
+                <TableHead className="text-[#59638F] e">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -235,9 +244,9 @@ const Project_Dashboard_Table = () => {
                   <TableCell>
                     {renderPriorityWithIcon(project.priority)}
                   </TableCell>
-                  <TableCell>{project.endDate}</TableCell>
-                  <TableCell>{project.startDate}</TableCell>
-                  <TableCell>{project.dueDate}</TableCell>
+                  <TableCell>{formatDate(project.endDate)}</TableCell>
+                  <TableCell>{formatDate(project.startDate)}</TableCell>
+                  <TableCell>{formatDate(project.dueDate)}</TableCell>
                   <TableCell>{project.members}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
